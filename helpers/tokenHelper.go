@@ -11,19 +11,17 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/newlinedeveloper/go-boilerplate/database"
 
-	// "go.mongodb.org/mongo-driver/bson"
-	// "go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	// "go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type SignedDetails struct {
 	Email     string
 	FirstName string
 	LastName  string
-	Uid       string
+	UserID    string
 	UserType  string
 	jwt.StandardClaims
 }
@@ -37,7 +35,7 @@ func GenerateAllTokens(email string, firstName string, lastName string, userType
 		Email:     email,
 		FirstName: firstName,
 		LastName:  lastName,
-		Uid:       uid,
+		UserID:       uid,
 		UserType:  userType,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Local().Add(time.Hour * time.Duration(24)).Unix(),
@@ -71,5 +69,26 @@ func UpdateAllTokens(signedToken string, signedRefreshToken string, userId strin
 	updateObj = append(updateObj, bson.E{"refresh_token", signedRefreshToken})
 
 	updatedAt, _ := time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
-	updateObj = append(updateObj, updatedAt)
+	updateObj = append(updateObj, bson.E{"updated_at", updatedAt})
+
+	upsert := true
+	filter := bson.M{"user_id": userId}
+	opt := options.UpdateOptions{
+		Upsert : &upsert,
+	}
+
+	_, err := userCollection.UpdateOne(
+		ctx,
+		filter,
+		bson.D{
+			{ "$set", updateObj },
+		},
+		&opt,
+	)
+
+	if err != nil {
+		log.Panic(err)
+		return
+	}
+	return
 }

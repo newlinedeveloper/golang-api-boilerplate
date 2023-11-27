@@ -86,9 +86,14 @@ func SignUp() gin.HandlerFunc {
 			return
 		}
 
+		// log.Println(user)
 		password := HashPassword(user.Password)
 		user.Password = password
-
+		// user.Email = user.Email
+		// user.Phone = user.Phone
+		// user.FirstName = user.FirstName
+		// user.LastName = user.LastName
+		// user.UserType = user.UserType
 		user.CreatedAt, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
 		user.UpdatedAt, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
 		user.ID = primitive.NewObjectID()
@@ -96,14 +101,17 @@ func SignUp() gin.HandlerFunc {
 		token, refreshToken, _ := helper.GenerateAllTokens(user.Email, user.FirstName, user.LastName, user.UserType, user.UserID)
 		user.Token = token
 		user.RefreshToken = refreshToken
+		log.Println(user)
 
-		resultInsertionNumber, insertErr := userCollection.InsertOne(ctx, user)
+
+		_, insertErr := userCollection.InsertOne(ctx, user)
 		if insertErr != nil {
 			msg := fmt.Sprintf("User item was not created")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 			return
 		}
-		c.JSON(http.StatusOK, resultInsertionNumber)
+		// c.JSON(http.StatusOK, map[string]interface{ "id" : resultInsertionNumber,  "user" : user} )
+		c.JSON(http.StatusOK, gin.H{ "user" : user} )
 	}
 }
 
@@ -128,9 +136,9 @@ func Login() gin.HandlerFunc {
 			return
 		}
 
-		if foundUser.Email == nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "user not found"})
-		}
+		// if foundUser.Email == nil {
+		// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "user not found"})
+		// }
 
 		token, refreshToken, _ := helper.GenerateAllTokens(foundUser.Email, foundUser.FirstName, foundUser.LastName, foundUser.UserType, foundUser.UserID)
 		helper.UpdateAllTokens(token, refreshToken, foundUser.UserID)
